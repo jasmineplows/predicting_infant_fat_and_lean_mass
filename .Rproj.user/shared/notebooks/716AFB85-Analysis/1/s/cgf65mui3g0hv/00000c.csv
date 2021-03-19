@@ -1,0 +1,3 @@
+"0",""
+"0","ggboxplot(external_validation_data, x = ""eth"", y =""residuals"", "
+"0","          xlab = ""Ethnicity"", ylab = ""Residuals (kg)"")"

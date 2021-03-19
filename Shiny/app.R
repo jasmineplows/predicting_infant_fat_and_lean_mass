@@ -1,0 +1,132 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+
+#shiny::runApp('FatLeanMassCalculator')
+
+library(shiny)
+library(car)
+
+# Define UI ---- fluidPage needed to automatically djust to the dimensions of the user's browser window
+ui <- fluidPage(
+    titlePanel("Plows et al. (2020) web app for predicting fat and lean mass in infants weighing ≤ 12kg"),
+    
+    sidebarLayout(
+        sidebarPanel(
+            helpText("Enter known variables here"),
+            
+            numericInput("weight", 
+                        label = "Enter infant weight (kg)",
+                        value = 5.1,
+                        min = 1.0,
+                        max = 12.0,
+                        step = 0.1),
+            
+            numericInput("length", 
+                         label = "Enter infant length (cm)",
+                         value = 54.00,
+                         min = 30.00,
+                         max = 87.5,
+                         step = 0.1),
+            
+            dateInput("birthdate", 
+                         label = "Enter infant birthdate (YYYY-MM-DD)",
+                         value = "2020-07-20"),
+            
+            dateInput("measuredate", 
+                      label = "Enter measurement date (YYYY-MM-DD)",
+                      value = "2020-08-25"),
+            
+            selectInput("sex", 
+                        label = "Enter infant sex",
+                        choices = list("Male", 
+                                       "Female"),
+                        selected = "Female"),
+        ),
+        
+        mainPanel(
+            helpText("Results"),
+            htmlOutput("selected_variables")
+            )
+    )
+)
+
+weight_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's weight"
+        } else if (input >= 12.1) {
+        "The infant's weight is too high for this calculator"
+    } else if (input <= 3.1) {
+        "The infant's weight is too low for this calculator"
+    }
+}
+
+length_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's length"
+    } else if (input >= 87.6) {
+        "The infant's length is too high for this calculator"
+    } else if (input <= 49.4) {
+        "The infant's length is too low for this calculator"
+    }
+}
+
+birthdate_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's birthdate"
+    }
+}
+
+measuredate_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's date of measurement"
+    }
+}
+
+age_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's age"
+    } else if (input >= 734) {
+        "The infant's age is too high for this calculator"
+    } else if (input <= 13) {
+        "The infant's age is too low for this calculator"
+    }
+}
+
+sex_validation <- function(input) {
+    if (!isTruthy(input)){
+        "Please enter infant's sex"
+    }
+}
+
+# Define server logic ----
+server <- function(input, output) {
+
+    output$selected_variables <- renderText({
+        validate(
+            weight_validation(input$weight),
+            length_validation(input$length),
+            birthdate_validation(input$birthdate),
+            measuredate_validation(input$measuredate),
+            sex_validation(input$sex)
+        )
+        age <- as.numeric(as.Date((input$measuredate), format="%Y/%m/%d") - as.Date((input$birthdate), format="%Y/%m/%d"))
+        validate(
+            age_validation(age)
+        )
+        sex <- car::recode(input$sex, "'Female'=0; 'Male'=1")
+        sex <- as.numeric(sex)
+        fat_result <- -23.36046624 + (0.019430*input$weight^3) - (0.006657*(input$weight^3*log(input$weight))) + (6.308704*input$length^0.5) - (0.421217*input$length) - (0.02871426*(age/100)^3) + (0.01336692*I((age/100)^3*log((age/100)))) - (0.15385126*sex)
+        lean_result <- 1.171676 - (8.505346*input$weight^-2) + (0.000877286*input$weight^3) + (0.03272145*input$length) + (0.063884*(age/100)^2) - (0.006391*(age/100)^3) + (0.132196*sex)
+        paste("For a", input$sex, "infant that weighs", input$weight, "kg, measures", input$length, "cm in length, and is", age, "days old <br><h3>Predicted fat mass is:</h3><h1>", round(fat_result, digits = 2), "kg</h1><br><h3>Predicted lean mass is:</h3><h1>", round(lean_result, digits = 2), "kg</h1>")
+    })
+    
+}
+
+
+# Run the app ----
+shinyApp(ui = ui, server = server)

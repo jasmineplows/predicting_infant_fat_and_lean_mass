@@ -1,0 +1,7 @@
+"0","###Need all the decimal places"
+"0","data_model_fat$fat_mass_predicted_manual_1 <- -2.184178709 + (4.042783311*I((data_model_fat$inf_weight_kg/10)^3)) - (6.565816571*I((data_model_fat$inf_weight_kg/10)^3*log((data_model_fat$inf_weight_kg/10)))) - (0.394737808*I((data_model_fat$inf_length_cm/100)^2)) - (14.322753826*I((data_model_fat$inf_length_cm/100)^2* log((data_model_fat$inf_length_cm/100)))) - (0.090395663*I((data_model_fat$age_in_days/100)^2)) + (0.009824718*I((data_model_fat$age_in_days/100)^3)) - (0.162045251*data_model_fat$baby_gender)"
+"0",""
+"0","ggscatter(data_model_fat, x = ""fat_mass_predicted"", y = ""fat_mass_predicted_manual_1"", "
+"0","          add = ""reg.line"", conf.int = TRUE, "
+"0","          cor.coef = TRUE, cor.method = ""pearson"","
+"0","          xlab = ""Computer equation"", ylab = ""My equation"")"

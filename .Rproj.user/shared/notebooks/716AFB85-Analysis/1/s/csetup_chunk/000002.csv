@@ -1,0 +1,533 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","source(""/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/RScripts/01-import.R"")"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[37m── [1mAttaching packages[22m ─────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──[39m
+"
+"2","[37m[32m✓[37m [34mggplot2[37m 3.3.2     [32m✓[37m [34mpurrr  [37m 0.3.4
+[32m✓[37m [34mtibble [37m 3.0.4     [32m✓[37m [34mdplyr  [37m 1.0.2
+[32m✓[37m [34mtidyr  [37m 1.1.2     [32m✓[37m [34mstringr[37m 1.4.0
+[32m✓[37m [34mreadr  [37m 1.4.0     [32m✓[37m [34mforcats[37m 0.5.0[39m
+"
+"2","[37m── [1mConflicts[22m ────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+[31mx[37m [34mdplyr[37m::[32mfilter()[37m masks [34mstats[37m::filter()
+[31mx[37m [34mdplyr[37m::[32mlag()[37m    masks [34mstats[37m::lag()[39m
+"
+"2","Loading required package: Matrix
+"
+"2","
+Attaching package: ‘Matrix’
+
+"
+"2","The following objects are masked from ‘package:tidyr’:
+
+    expand, pack, unpack
+
+"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"2","Registered S3 methods overwritten by 'car':
+  method                          from
+  influence.merMod                lme4
+  cooks.distance.influence.merMod lme4
+  dfbeta.influence.merMod         lme4
+  dfbetas.influence.merMod        lme4
+"
+"2","
+Attaching package: ‘gridExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    combine
+
+"
+"2","
+Attaching package: ‘psych’
+
+"
+"2","The following objects are masked from ‘package:ggplot2’:
+
+    %+%, alpha
+
+"
+"2","Loading required package: carData
+"
+"2","
+Attaching package: ‘car’
+
+"
+"2","The following object is masked from ‘package:psych’:
+
+    logit
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    recode
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    some
+
+"
+"2","----------------------------------------------------------------------------------------------------------------------------------------------
+"
+"2","You have loaded plyr after dplyr - this is likely to cause problems.
+If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+library(plyr); library(dplyr)
+"
+"2","----------------------------------------------------------------------------------------------------------------------------------------------
+"
+"2","
+Attaching package: ‘plyr’
+
+"
+"2","The following object is masked from ‘package:ggpubr’:
+
+    mutate
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise, summarize
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    compact
+
+"
+"2","Loading required package: lattice
+"
+"2","Loading required package: survival
+"
+"2","Loading required package: Formula
+"
+"2","Registered S3 methods overwritten by 'htmltools':
+  method               from         
+  print.html           tools:rstudio
+  print.shiny.tag      tools:rstudio
+  print.shiny.tag.list tools:rstudio
+"
+"2","Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+"
+"2","
+Attaching package: ‘Hmisc’
+
+"
+"2","The following objects are masked from ‘package:xtable’:
+
+    label, label<-
+
+"
+"2","The following objects are masked from ‘package:plyr’:
+
+    is.discrete, summarize
+
+"
+"2","The following object is masked from ‘package:psych’:
+
+    describe
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    src, summarize
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    format.pval, units
+
+"
+"2","
+Attaching package: ‘MASS’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    select
+
+"
+"2","Loading required package: zoo
+"
+"2","
+Attaching package: ‘zoo’
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+"
+"2","
+Attaching package: ‘plm’
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    between, lag, lead
+
+"
+"2","Loading required package: splines
+"
+"2","Loading required package: foreach
+"
+"2","
+Attaching package: ‘foreach’
+
+"
+"2","The following objects are masked from ‘package:purrr’:
+
+    accumulate, when
+
+"
+"2","Loaded gam 1.16.1
+
+"
+"2","
+Attaching package: ‘caret’
+
+"
+"2","The following object is masked from ‘package:survival’:
+
+    cluster
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    lift
+
+"
+"2","
+Attaching package: ‘robustbase’
+
+"
+"2","The following object is masked from ‘package:survival’:
+
+    heart
+
+"
+"2","Loading required package: nlme
+"
+"2","
+Attaching package: ‘nlme’
+
+"
+"2","The following object is masked from ‘package:lme4’:
+
+    lmList
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    collapse
+
+"
+"2","This is mgcv 1.8-33. For overview type 'help(""mgcv-package"")'.
+"
+"2","
+Attaching package: ‘mgcv’
+
+"
+"2","The following objects are masked from ‘package:gam’:
+
+    gam, gam.control, gam.fit, s
+
+"
+"2","
+Attaching package: ‘gnm’
+
+"
+"2","The following object is masked from ‘package:lattice’:
+
+    barley
+
+"
+"2","Registered S3 method overwritten by 'GGally':
+  method from   
+  +.gg   ggplot2
+"
+"2","Loading required package: SparseM
+"
+"2","
+Attaching package: ‘SparseM’
+
+"
+"2","The following object is masked from ‘package:base’:
+
+    backsolve
+
+"
+"2","
+Attaching package: ‘rms’
+
+"
+"2","The following object is masked from ‘package:lmtest’:
+
+    lrtest
+
+"
+"2","The following objects are masked from ‘package:car’:
+
+    Predict, vif
+
+"
+"2","
+Attaching package: ‘Metrics’
+
+"
+"2","The following object is masked from ‘package:gnm’:
+
+    se
+
+"
+"2","The following objects are masked from ‘package:caret’:
+
+    precision, recall
+
+"
+"2","[37m── [1mAttaching packages[22m ────────────────────────────────────────────────────────────────────────────────────────────────────── tidymodels 0.1.0 ──[39m
+"
+"2","[37m[32m✓[37m [34mdials    [37m 0.0.6      [32m✓[37m [34mrsample  [37m 0.0.6 
+[32m✓[37m [34minfer    [37m 0.5.1      [32m✓[37m [34mtune     [37m 0.1.0 
+[32m✓[37m [34mparsnip  [37m 0.1.1      [32m✓[37m [34mworkflows[37m 0.1.1 
+[32m✓[37m [34mrecipes  [37m 0.1.12     [32m✓[37m [34myardstick[37m 0.0.6 [39m
+"
+"2","[37m── [1mConflicts[22m ───────────────────────────────────────────────────────────────────────────────────────────────────────── tidymodels_conflicts() ──
+[31mx[37m [34mpsych[37m::[32m%+%()[37m             masks [34mggplot2[37m::%+%()
+[31mx[37m [34mforeach[37m::[32maccumulate()[37m    masks [34mpurrr[37m::accumulate()
+[31mx[37m [34myardstick[37m::[32maccuracy()[37m    masks [34mMetrics[37m::accuracy()
+[31mx[37m [34mscales[37m::[32malpha()[37m          masks [34mpsych[37m::alpha(), [34mggplot2[37m::alpha()
+[31mx[37m [34mplyr[37m::[32marrange()[37m          masks [34mdplyr[37m::arrange()
+[31mx[37m [34mplm[37m::[32mbetween()[37m           masks [34mdplyr[37m::between()
+[31mx[37m [34mnlme[37m::[32mcollapse()[37m         masks [34mdplyr[37m::collapse()
+[31mx[37m [34mgridExtra[37m::[32mcombine()[37m     masks [34mdplyr[37m::combine()
+[31mx[37m [34mplyr[37m::[32mcompact()[37m          masks [34mpurrr[37m::compact()
+[31mx[37m [34mplyr[37m::[32mcount()[37m            masks [34mdplyr[37m::count()
+[31mx[37m [34mscales[37m::[32mdiscard()[37m        masks [34mpurrr[37m::discard()
+[31mx[37m [34mplyr[37m::[32mfailwith()[37m         masks [34mdplyr[37m::failwith()
+[31mx[37m [34mdplyr[37m::[32mfilter()[37m          masks [34mstats[37m::filter()
+[31mx[37m [34mrecipes[37m::[32mfixed()[37m         masks [34mstringr[37m::fixed()
+[31mx[37m [34mplyr[37m::[32mid()[37m               masks [34mdplyr[37m::id()
+[31mx[37m [34mplm[37m::[32mlag()[37m               masks [34mdplyr[37m::lag(), [34mstats[37m::lag()
+[31mx[37m [34mplm[37m::[32mlead()[37m              masks [34mdplyr[37m::lead()
+[31mx[37m [34mcaret[37m::[32mlift()[37m            masks [34mpurrr[37m::lift()
+[31mx[37m [34myardstick[37m::[32mmae()[37m         masks [34mMetrics[37m::mae()
+[31mx[37m [34myardstick[37m::[32mmape()[37m        masks [34mMetrics[37m::mape()
+[31mx[37m [34mdials[37m::[32mmargin()[37m          masks [34mggplot2[37m::margin()
+[31mx[37m [34myardstick[37m::[32mmase()[37m        masks [34mMetrics[37m::mase()
+[31mx[37m [34mplyr[37m::[32mmutate()[37m           masks [34mggpubr[37m::mutate(), [34mdplyr[37m::mutate()
+[31mx[37m [34mtune[37m::[32mparameters()[37m       masks [34mdials[37m::parameters(), [34mgnm[37m::parameters()
+[31mx[37m [34myardstick[37m::[32mprecision()[37m   masks [34mMetrics[37m::precision(), [34mcaret[37m::precision()
+[31mx[37m [34myardstick[37m::[32mrecall()[37m      masks [34mMetrics[37m::recall(), [34mcaret[37m::recall()
+[31mx[37m [34mcar[37m::[32mrecode()[37m            masks [34mdplyr[37m::recode()
+[31mx[37m [34mplyr[37m::[32mrename()[37m           masks [34mdplyr[37m::rename()
+[31mx[37m [34myardstick[37m::[32mrmse()[37m        masks [34mMetrics[37m::rmse()
+[31mx[37m [34mMASS[37m::[32mselect()[37m           masks [34mdplyr[37m::select()
+[31mx[37m [34myardstick[37m::[32msensitivity()[37m masks [34mcaret[37m::sensitivity()
+[31mx[37m [34myardstick[37m::[32msmape()[37m       masks [34mMetrics[37m::smape()
+[31mx[37m [34mcar[37m::[32msome()[37m              masks [34mpurrr[37m::some()
+[31mx[37m [34myardstick[37m::[32mspec()[37m        masks [34mreadr[37m::spec()
+[31mx[37m [34myardstick[37m::[32mspecificity()[37m masks [34mcaret[37m::specificity()
+[31mx[37m [34mHmisc[37m::[32msrc()[37m             masks [34mdplyr[37m::src()
+[31mx[37m [34mrecipes[37m::[32mstep()[37m          masks [34mstats[37m::step()
+[31mx[37m [34mplyr[37m::[32msummarise()[37m        masks [34mdplyr[37m::summarise()
+[31mx[37m [34mHmisc[37m::[32msummarize()[37m       masks [34mplyr[37m::summarize(), [34mdplyr[37m::summarize()
+[31mx[37m [34mparsnip[37m::[32mtranslate()[37m     masks [34mHmisc[37m::translate()
+[31mx[37m [34mforeach[37m::[32mwhen()[37m          masks [34mpurrr[37m::when()[39m
+"
+"2","
+Attaching package: ‘emmeans’
+
+"
+"2","The following object is masked from ‘package:rms’:
+
+    contrast
+
+"
+"2","The following object is masked from ‘package:GGally’:
+
+    pigs
+
+"
+"2","
+Attaching package: ‘rstatix’
+
+"
+"2","The following objects are masked from ‘package:infer’:
+
+    chisq_test, t_test
+
+"
+"2","The following object is masked from ‘package:MASS’:
+
+    select
+
+"
+"2","The following objects are masked from ‘package:plyr’:
+
+    desc, mutate
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    filter
+
+"
+"2","
+Attaching package: ‘patchwork’
+
+"
+"2","The following object is masked from ‘package:MASS’:
+
+    area
+
+"
+"2","Loading required package: Rcpp
+"
+"2","
+Attaching package: ‘Rcpp’
+
+"
+"2","The following object is masked from ‘package:rsample’:
+
+    populate
+
+"
+"2","Loading required package: htmlTable
+"
+"2","
+Attaching package: ‘reshape2’
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    smiths
+
+"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"
+"2","Loading required package: multilevel
+"
+"2","
+Attaching package: ‘psychometric’
+
+"
+"2","The following object is masked from ‘package:scales’:
+
+    alpha
+
+"
+"2","The following object is masked from ‘package:psych’:
+
+    alpha
+
+"
+"2","The following object is masked from ‘package:ggplot2’:
+
+    alpha
+
+"
+"2","
+Attaching package: ‘DescTools’
+
+"
+"2","The following objects are masked from ‘package:caret’:
+
+    MAE, RMSE
+
+"
+"2","The following objects are masked from ‘package:Hmisc’:
+
+    %nin%, Label, Mean, Quantile
+
+"
+"2","The following object is masked from ‘package:car’:
+
+    Recode
+
+"
+"2","The following objects are masked from ‘package:psych’:
+
+    AUC, ICC, SD
+
+"
+"2","Loading required package: lpSolve
+"
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  .default = col_double(),
+  baby_gender = [31mcol_character()[39m,
+  Timepoint = [31mcol_character()[39m
+)
+[36mℹ[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  .default = col_double()
+)
+[36mℹ[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  fat_mass = [32mcol_double()[39m,
+  inf_weight_kg = [32mcol_double()[39m,
+  inf_length_cm = [32mcol_double()[39m,
+  baby_gender = [32mcol_double()[39m,
+  age_in_days = [32mcol_double()[39m
+)
+
+"
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  lean_mass = [32mcol_double()[39m,
+  inf_weight_kg = [32mcol_double()[39m,
+  inf_length_cm = [32mcol_double()[39m,
+  baby_gender = [32mcol_double()[39m,
+  age_in_days = [32mcol_double()[39m
+)
+
+"
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  rowname = [32mcol_double()[39m,
+  CHLAID = [32mcol_double()[39m,
+  eth = [31mcol_character()[39m,
+  timepoint = [31mcol_character()[39m,
+  fat_mass = [32mcol_double()[39m,
+  lean_mass = [32mcol_double()[39m,
+  total_water = [32mcol_double()[39m,
+  inf_weight_kg = [32mcol_double()[39m,
+  inf_length_cm = [32mcol_double()[39m,
+  baby_gender = [32mcol_double()[39m,
+  age_in_days = [32mcol_double()[39m,
+  sex = [32mcol_double()[39m,
+  zwfl = [32mcol_double()[39m,
+  zbmi = [32mcol_double()[39m
+)
+
+"

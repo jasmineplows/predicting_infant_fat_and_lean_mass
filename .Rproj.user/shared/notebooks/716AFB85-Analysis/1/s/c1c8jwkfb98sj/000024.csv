@@ -1,0 +1,4 @@
+"0",""
+"0","data_model_fat_gee$residuals <- data_model_fat_gee$fat_mass - data_model_fat_gee$gee_fit"
+"0",""
+"0","mean_ci(data_model_fat_gee$residuals)"

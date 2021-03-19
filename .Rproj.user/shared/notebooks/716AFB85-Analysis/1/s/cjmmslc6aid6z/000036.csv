@@ -1,0 +1,4 @@
+"0",""
+"0","ColumbiaDataHispanic$residuals <- ColumbiaDataHispanic$fat_mass - ColumbiaDataHispanic$fat_mass_predicted"
+"0",""
+"0","mean_ci(ColumbiaDataHispanic$residuals)"

@@ -1,0 +1,47 @@
+---
+title: "EchoMRI Precision Updated"
+author: "Jasmine Plows"
+date: "7/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, results="hide")
+source("/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/RScripts/01-import.R")
+```
+
+```{r}
+SummaryTable <- GEEdataSet %>%
+  rowwise() %>%
+  mutate(
+    fat_sd = sd(c(echo_fm_1, echo_fm_2, echo_fm_3)),
+    fat_cv_pct = (fat_sd/fat_mass)*100,
+    lean_sd = sd(c(echo_lm_1, echo_lm_2, echo_lm_3)),
+    lean_cv_pct = (lean_sd/lean_mass)*100,
+    fw_sd = sd(c(echo_fw_1, echo_fw_2, echo_fw_3)),
+    fw_cv_pct = (fw_sd/free_water)*100,
+    tw_sd = sd(c(echo_tw_1, echo_tw_2, echo_tw_3)),
+    tw_cv_pct = (tw_sd/total_water)*100
+  )
+
+FatMeanSD <- mean(SummaryTable$fat_sd)*1000
+FatSDSD <- sd(SummaryTable$fat_sd)*1000
+FatMeanCV <- mean(SummaryTable$fat_cv_pct)
+FatSDCV <- sd(SummaryTable$fat_cv_pct)
+
+LeanMeanSD <- mean(SummaryTable$lean_sd)*1000
+LeanSDSD <- sd(SummaryTable$lean_sd)*1000
+LeanMeanCV <- mean(SummaryTable$lean_cv_pct)
+LeanSDCV <- sd(SummaryTable$lean_cv_pct)
+
+fwMeanSD <- mean(SummaryTable$fw_sd)*1000
+fwSDSD <- sd(SummaryTable$fw_sd)*1000
+fwMeanCV <- mean(SummaryTable$fw_cv_pct)
+fwSDCV <- sd(SummaryTable$fw_cv_pct)
+
+twMeanSD <- mean(SummaryTable$tw_sd)*1000
+twSDSD <- sd(SummaryTable$tw_sd)*1000
+twMeanCV <- mean(SummaryTable$tw_cv_pct)
+twSDCV <- sd(SummaryTable$tw_cv_pct)
+
+```

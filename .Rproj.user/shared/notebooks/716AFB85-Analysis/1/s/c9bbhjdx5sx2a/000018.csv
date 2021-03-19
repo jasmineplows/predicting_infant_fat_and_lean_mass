@@ -1,0 +1,4 @@
+"0",""
+"0","external_validation_data_recab$residuals <- external_validation_data_recab$fat_mass - external_validation_data_recab$fat_mass_predicted_recab"
+"0",""
+"0","mean_ci(external_validation_data_recab$residuals)"

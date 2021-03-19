@@ -1,0 +1,856 @@
+---
+title: "Predictive Modeling of Infant Fat Mass STEPWISE SELECTION"
+author: "Jasmine Plows"
+date: "4/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/RScripts/01-import.R")
+```
+
+# Fat mass validation
+
+Check relationships between variables look OK
+```{r, message=FALSE}
+ggpairs(data=data_model_fat, columns=1:5, title="fat mass relationships")
+```
+
+Find fractional polynomial terms:
+```{r}
+#Backwards stepwise selection with fractional polynomial terms as here: https://cran.r-project.org/web/packages/mfp/vignettes/mfp_vignette.pdf
+model1 <- mfp(fat_mass ~ fp(inf_weight_kg) + fp(inf_length_cm) + fp(age_in_days) + baby_gender, family = gaussian, data = data_model_fat, select=0.05, verbose=TRUE)
+summary(model1)   
+
+
+#The above model was how we got the original model -- then tested in the sections below (bootstrapping).
+
+coef=(summary(model1)$coefficients[,1])
+st_err=(summary(model1)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+```
+
+Bootstrapping to adjust for overfitting:
+```{r}
+data_model_fat$inf_weight_poly <- I((data_model_fat$inf_weight_kg/10)^3)
+data_model_fat$inf_weight_poly2 <- I((data_model_fat$inf_weight_kg/10)^3*log((data_model_fat$inf_weight_kg/10))) 
+data_model_fat$inf_length_poly <- I((data_model_fat$inf_length_cm/100)^2)
+data_model_fat$inf_length_poly2 <- I((data_model_fat$inf_length_cm/100)^2* log((data_model_fat$inf_length_cm/100)))
+data_model_fat$age_in_days_poly <- I((data_model_fat$age_in_days/100)^2)
+data_model_fat$age_in_days_poly2 <- I((data_model_fat$age_in_days/100)^3)
+
+set.seed(123)
+mod <- ols(fat_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + age_in_days_poly + age_in_days_poly2 + baby_gender, data = data_model_fat, x=TRUE, y=TRUE)
+
+v <- validate(mod, B=1000, bw=TRUE, rule="p", sls=.1, type="individual")
+
+##Adjust for overfitting
+coef=(mod$coefficients)
+shrink_factor <- v["Slope","index.corrected"]
+shrink_factor
+
+overfit_adjustment <- coef*shrink_factor
+overfit_adjustment
+
+confint(mod)
+
+###Cook's distance
+# cooksd <- cooks.distance(model1)
+# 
+# plot(cooksd, pch=".", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+# abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+# text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+
+data_model_fat$fat_mass_predicted <- predict(mod, data_model_fat)
+
+fit <- lm(data_model_fat$fat_mass ~ data_model_fat$fat_mass_predicted)
+summary(fit)
+
+#slope 95%
+confint(fit, 'data_model_fat$fat_mass_predicted', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+data_model_fat$residuals <- data_model_fat$fat_mass - data_model_fat$fat_mass_predicted
+
+mean_ci(data_model_fat$residuals)
+
+CCC(data_model_fat$fat_mass_predicted, data_model_fat$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(data_model_fat$fat_mass_predicted, data_model_fat$fat_mass)
+
+fatplot <- ggscatter(data_model_fat, x = "fat_mass_predicted", y ="fat_mass", 
+          add = "loess",
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted fat mass (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2) + theme(plot.margin = unit(c(1,1,1,2), "lines"))
+
+###Interaction term test
+# int <- lm(fat_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + age_in_days_poly + age_in_days_poly2 + baby_gender, data = data_model_fat)
+# summary(int)
+# 
+# data_model_fat$fat_mass_predicted_int <- predict(int, data_model_fat)
+# 
+# fit <- lm(data_model_fat$fat_mass ~ data_model_fat$fat_mass_predicted_int)
+# summary(fit)
+# 
+# RMSE(data_model_fat$fat_mass_predicted_int, data_model_fat$fat_mass)
+
+
+
+```
+
+Predict fat mass manually to check the equation:
+```{r}
+###Need all the decimal places
+data_model_fat$fat_mass_predicted_manual_1 <- -2.184178709 + (4.042783311*I((data_model_fat$inf_weight_kg/10)^3)) - (6.565816571*I((data_model_fat$inf_weight_kg/10)^3*log((data_model_fat$inf_weight_kg/10)))) - (0.394737808*I((data_model_fat$inf_length_cm/100)^2)) - (14.322753826*I((data_model_fat$inf_length_cm/100)^2* log((data_model_fat$inf_length_cm/100)))) - (0.090395663*I((data_model_fat$age_in_days/100)^2)) + (0.009824718*I((data_model_fat$age_in_days/100)^3)) - (0.162045251*data_model_fat$baby_gender)
+
+ggscatter(data_model_fat, x = "fat_mass_predicted", y = "fat_mass_predicted_manual_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Computer equation", ylab = "My equation")
+
+###Test that matches excel calculator
+# test_data <- data_model_fat %>% select(baby_gender, age_in_days, inf_weight_kg, inf_length_cm, fat_mass, fat_mass_predicted, fat_mass_predicted_manual_1, fat_mass_predicted_manual_2)
+# 
+# write.csv(test_data, file = "test_data.csv")
+
+```
+
+
+Supplementary stuff:
+
+Here is the GEE fit, which is supplementary:
+```{r}
+data_model_fat_gee <- GEEdataSet %>%
+  dplyr::filter(!is.na(inf_weight_kg) & !is.na(inf_length_cm) & !is.na(baby_gender) & !is.na(age_in_days)) %>%
+  dplyr::select(study_id, timepoint, fat_mass, inf_weight_kg, inf_length_cm, baby_gender, age_in_days)
+
+data_model_fat_gee$inf_weight_poly <- I((data_model_fat_gee$inf_weight_kg/10)^3)
+data_model_fat_gee$inf_weight_poly2 <- I((data_model_fat_gee$inf_weight_kg/10)^3*log((data_model_fat_gee$inf_weight_kg/10))) 
+data_model_fat_gee$inf_length_poly <- I((data_model_fat_gee$inf_length_cm/100)^2)
+data_model_fat_gee$inf_length_poly2 <- I((data_model_fat_gee$inf_length_cm/100)^2* log((data_model_fat_gee$inf_length_cm/100)))
+data_model_fat_gee$age_in_days_poly <- I((data_model_fat_gee$age_in_days/100)^2)
+data_model_fat_gee$age_in_days_poly2 <- I((data_model_fat_gee$age_in_days/100)^3)
+
+
+library(geepack)
+
+library(pstools)
+
+wav <- data_model_fat_gee$timepoint
+
+geefit <- geepack::geeglm(fat_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + age_in_days_poly + age_in_days_poly2 + baby_gender,
+                  id = study_id, waves = wav, data = data_model_fat_gee, corstr = "ar1")
+
+summary(geefit)
+
+coef=(summary(geefit)$coefficients[,1])
+st_err=(summary(geefit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+coef=geefit$coefficients
+
+overfit_adjustment <- coef*shrink_factor
+
+data_model_fat_gee$gee_fit <- predict(geefit, data_model_fat_gee)
+
+fit <- lm(data_model_fat_gee$fat_mass ~ data_model_fat_gee$gee_fit)
+summary(fit)
+
+#slope 95%
+confint(fit, 'data_model_fat_gee$gee_fit', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95)
+
+data_model_fat_gee$residuals <- data_model_fat_gee$fat_mass - data_model_fat_gee$gee_fit
+
+mean_ci(data_model_fat_gee$residuals)
+
+CCC(data_model_fat_gee$gee_fit, data_model_fat_gee$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(data_model_fat_gee$gee_fit, data_model_fat_gee$fat_mass)
+
+ggscatter(data_model_fat_gee, x = "gee_fit", y ="fat_mass",
+          add = "loess",
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted fat mass GEE (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+ 
+```{r}
+# #Residuals against age and ethnicity
+# data_model_fat$residuals <- data_model_fat$fat_mass - data_model_fat$fat_mass_predicted
+# 
+# mean_ci(data_model_fat$residuals)
+# 
+# fit <- lm(data_model_fat$age_in_days ~ data_model_fat$residuals)
+# summary(fit)
+# 
+# ggscatter(data_model_fat, x = "age_in_days", y ="residuals",
+#           add = "reg.line", conf.int = TRUE,
+#           # cor.coef = TRUE, cor.method = "pearson",
+#           xlab = "Age (days)", ylab = "Residuals (kg)") +
+#   geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+
+```{r}
+###Comparing with Lingwood equation
+data_model_fat$infant_sex <- recode(data_model_fat$baby_gender, "NA=NA; 0=2; 1=1")
+
+data_model_fat$fat_free_mass_lingwood <- 0.507 + (0.646*data_model_fat$inf_weight_kg) - (0.089*data_model_fat$infant_sex) + (0.009*data_model_fat$inf_length_cm)
+
+data_model_fat$fat_mass_lingwood <- data_model_fat$inf_weight_kg - data_model_fat$fat_free_mass_lingwood
+
+data_model_fat$residuals <- data_model_fat$fat_mass - data_model_fat$fat_mass_lingwood
+
+mean(data_model_fat$fat_mass) - mean(data_model_fat$fat_mass_lingwood)
+
+mean(data_model_fat$residuals)
+
+RMSE(data_model_fat$fat_mass_lingwood, data_model_fat$fat_mass)
+
+CCC(data_model_fat$fat_mass_lingwood, data_model_fat$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+r2 <- cor(data_model_fat$fat_mass_lingwood, data_model_fat$fat_mass)^2
+
+r2
+
+r2adjust <- 1-((1-r2)*(334-1)/(334-3-1))
+r2adjust
+
+lm(data_model_fat$fat_mass_lingwood ~ data_model_fat$fat_mass)
+
+ggscatter(data_model_fat, x = "fat_mass_lingwood", y ="fat_mass",
+          add = "reg.line", conf.int = TRUE,
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted fat mass by Lingwood equation (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,6),
+          ylim=c(0,6)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+
+# External validation
+
+```{r, include=FALSE}
+external_validation_data$inf_weight_poly <- I((external_validation_data$inf_weight_kg/10)^3)
+external_validation_data$inf_weight_poly2 <- I((external_validation_data$inf_weight_kg/10)^3*log((external_validation_data$inf_weight_kg/10))) 
+external_validation_data$inf_length_poly <- I((external_validation_data$inf_length_cm/100)^2)
+external_validation_data$inf_length_poly2 <- I((external_validation_data$inf_length_cm/100)^2* log((external_validation_data$inf_length_cm/100)))
+external_validation_data$age_in_days_poly <- I((external_validation_data$age_in_days/100)^2)
+external_validation_data$age_in_days_poly2 <- I((external_validation_data$age_in_days/100)^3)
+
+#Model - adjusted for overfitting
+external_validation_data$fat_mass_predicted <- predict(mod, external_validation_data)
+
+ColumbiaDataHispanic <- external_validation_data %>%
+  dplyr::filter(eth == "HISP")
+
+ColumbiaDataHispanic$fat_mass_predicted <- predict(mod, ColumbiaDataHispanic)
+
+
+fit <- lm(external_validation_data$fat_mass ~ external_validation_data$fat_mass_predicted)
+summary(fit)
+
+###Sig different slope than 1?
+fit2 <- lm(external_validation_data$fat_mass ~ external_validation_data$fat_mass_predicted +offset(1*external_validation_data$fat_mass_predicted))
+summary(fit2) 
+
+#slope 95%
+confint(fit, 'external_validation_data$fat_mass_predicted', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95)
+
+external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$fat_mass_predicted
+
+mean_ci(external_validation_data$residuals)
+
+CCC(external_validation_data$fat_mass_predicted, external_validation_data$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data$fat_mass_predicted, external_validation_data$fat_mass)
+
+fig_2 <- ggscatter(external_validation_data, x = "fat_mass_predicted", y = "fat_mass",
+          add = "loess",
+          xlab = "Predicted fat mass (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+
+ggexport(fig_2,
+         filename = "/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/Plots/Figure_2.pdf",
+         width = 7,
+         height = 4.5,
+         unit = "in",
+         dpi = 300)
+```
+
+```{r}
+##Manual
+external_validation_data$fat_mass_predicted_manual <- -2.184178709 + (4.042783311*I((external_validation_data$inf_weight_kg/10)^3)) - (6.565816571*I((external_validation_data$inf_weight_kg/10)^3*log((external_validation_data$inf_weight_kg/10)))) - (0.394737808*I((external_validation_data$inf_length_cm/100)^2)) - (14.322753826*I((external_validation_data$inf_length_cm/100)^2* log((external_validation_data$inf_length_cm/100)))) - (0.090395663*I((external_validation_data$age_in_days/100)^2)) + (0.009824718*I((external_validation_data$age_in_days/100)^3)) - (0.162045251*external_validation_data$baby_gender)
+
+fit <- lm(external_validation_data$fat_mass ~ external_validation_data$fat_mass_predicted_manual)
+summary(fit)
+
+#slope 95%
+confint(fit, 'external_validation_data$fat_mass_predicted_manual', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95)
+
+external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$fat_mass_predicted_manual
+
+mean_ci(external_validation_data$residuals)
+
+CCC(external_validation_data$fat_mass_predicted_manual, external_validation_data$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data$fat_mass_predicted_manual, external_validation_data$fat_mass)
+
+ggscatter(external_validation_data, x = "fat_mass_predicted_manual", y = "fat_mass",
+          add = "loess",
+          title = "All ethnicities",
+          xlab = "Predicted fat mass", ylab = "Actual fat mass",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+
+```
+
+
+```{r}
+fit <- lm(external_validation_data$fat_mass ~ external_validation_data$fat_mass_predicted)
+summary(fit)
+
+#slope 95%
+confint(fit, 'external_validation_data$fat_mass_predicted', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$fat_mass_predicted
+
+mean_ci(external_validation_data$residuals)
+
+CCC(external_validation_data$fat_mass_predicted, external_validation_data$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data$fat_mass_predicted, external_validation_data$fat_mass)
+
+ggscatter(external_validation_data, x = "fat_mass_predicted", y = "fat_mass", 
+          add = "loess",
+          xlab = "Predicted fat mass (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+
+#Hispanics only
+fit <- lm(ColumbiaDataHispanic$fat_mass ~ ColumbiaDataHispanic$fat_mass_predicted)
+summary(fit)
+
+#slope 95%
+confint(fit, 'ColumbiaDataHispanic$fat_mass_predicted', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+ColumbiaDataHispanic$residuals <- ColumbiaDataHispanic$fat_mass - ColumbiaDataHispanic$fat_mass_predicted
+
+mean_ci(ColumbiaDataHispanic$residuals)
+
+CCC(ColumbiaDataHispanic$fat_mass_predicted, ColumbiaDataHispanic$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(ColumbiaDataHispanic$fat_mass_predicted, ColumbiaDataHispanic$fat_mass)
+
+ggscatter(ColumbiaDataHispanic, x = "fat_mass_predicted", y = "fat_mass", 
+          add = "reg.line", conf.int = TRUE, 
+          title = "Hispanics",
+          xlab = "Predicted fat mass (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+  
+#Time split
+# ColumbiaData13wk <- external_validation_data %>%
+#   filter(timepoint == "13wk")
+# 
+# fit <- lm(ColumbiaData13wk$fat_mass ~ ColumbiaData13wk$fat_mass_predicted_gee)
+# summary(fit)
+# 
+# #slope 95%
+# confint(fit, 'ColumbiaData13wk$fat_mass_predicted', level=0.95)
+# 
+# #Interval 95%
+# coef=(summary(fit)$coefficients[,1])
+# st_err=(summary(fit)$coefficients[,2])*2
+# upper_conf_int = coef + st_err
+# lower_conf_int = coef - st_err
+# lower_conf_int
+# upper_conf_int
+# 
+# psychometric::CI.Rsqlm(fit, level = 0.95)
+# 
+# ColumbiaData13wk$residuals <- ColumbiaData13wk$fat_mass - ColumbiaData13wk$fat_mass_predicted
+# 
+# mean_ci(ColumbiaData13wk$residuals)
+# 
+# CCC(ColumbiaData13wk$fat_mass_predicted, ColumbiaData13wk$fat_mass, conf.level = 0.95, na.rm = TRUE)
+# 
+# RMSE(ColumbiaData13wk$fat_mass_predicted, ColumbiaData13wk$fat_mass)
+# 
+# ggscatter(ColumbiaData13wk, x = "fat_mass_predicted", y = "fat_mass",
+#           add = "reg.line", conf.int = TRUE,
+#           title = "All ethnicities 13 weeks",
+#           xlab = "Predicted fat mass", ylab = "Actual fat mass",
+#           xlim=c(0,5),
+#           ylim=c(0,5)) +
+#   scale_x_continuous(expand = c(0, 0)) +
+#   scale_y_continuous(expand = c(0, 0)) +
+#   geom_abline(intercept = 0, slope = 1, linetype=2)
+# # 
+# # #####52 weeks
+# # 
+# ColumbiaData52wk <- external_validation_data %>%
+#   filter(timepoint == "52wk")
+# 
+# fit <- lm(ColumbiaData52wk$fat_mass ~ ColumbiaData52wk$fat_mass_predicted_gee)
+# summary(fit)
+# 
+# #slope 95%
+# confint(fit, 'ColumbiaData52wk$fat_mass_predicted', level=0.95)
+# 
+# #Interval 95%
+# coef=(summary(fit)$coefficients[,1])
+# st_err=(summary(fit)$coefficients[,2])*2
+# upper_conf_int = coef + st_err
+# lower_conf_int = coef - st_err
+# lower_conf_int
+# upper_conf_int
+# 
+# psychometric::CI.Rsqlm(fit, level = 0.95)
+# 
+# ColumbiaData52wk$residuals <- ColumbiaData52wk$fat_mass - ColumbiaData52wk$fat_mass_predicted_gee
+# 
+# mean_ci(ColumbiaData52wk$residuals)
+# 
+# CCC(ColumbiaData52wk$fat_mass_predicted, ColumbiaData52wk$fat_mass, conf.level = 0.95, na.rm = TRUE)
+# 
+# RMSE(ColumbiaData52wk$fat_mass_predicted, ColumbiaData52wk$fat_mass)
+# #
+# ggscatter(ColumbiaData52wk, x = "fat_mass_predicted", y = "fat_mass",
+#           add = "reg.line", conf.int = TRUE,
+#           title = "All ethnicities 52 weeks",
+#           xlab = "Predicted fat mass", ylab = "Actual fat mass",
+#           xlim=c(0,5),
+#           ylim=c(0,5)) +
+#   scale_x_continuous(expand = c(0, 0)) +
+#   scale_y_continuous(expand = c(0, 0)) +
+#   geom_abline(intercept = 0, slope = 1, linetype=2)
+
+
+
+
+```
+
+```{r}
+# Recalibration of intercept - this is suddenly not working.
+library(metamisc)
+external_validation_data_recab <- external_validation_data %>%
+  dplyr::filter(!is.na(fat_mass) & !is.na(inf_weight_kg) & !is.na(inf_length_cm) & !is.na(baby_gender) & !is.na(age_in_days)) %>%
+  dplyr::select(fat_mass, inf_weight_kg, inf_length_cm, baby_gender, age_in_days)
+
+external_validation_data_recab$inf_weight_poly <- I((external_validation_data_recab$inf_weight_kg/10)^3)
+external_validation_data_recab$inf_weight_poly2 <- I((external_validation_data_recab$inf_weight_kg/10)^3*log((external_validation_data_recab$inf_weight_kg/10))) 
+external_validation_data_recab$inf_length_poly <- I((external_validation_data_recab$inf_length_cm/100)^2)
+external_validation_data_recab$inf_length_poly2 <- I((external_validation_data_recab$inf_length_cm/100)^2* log((external_validation_data_recab$inf_length_cm/100)))
+external_validation_data_recab$age_in_days_poly <- I((external_validation_data_recab$age_in_days/100)^2)
+external_validation_data_recab$age_in_days_poly2 <- I((external_validation_data_recab$age_in_days/100)^3)
+
+mod2 <- glm(fat_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + baby_gender + age_in_days_poly + age_in_days_poly2, data = data_model_fat, x=TRUE, y=TRUE)
+
+r <- metamisc::recalibrate(mod2, external_validation_data_recab)
+
+external_validation_data_recab$fat_mass_predicted_recab <- predict(r, external_validation_data_recab)
+
+fit <- lm(external_validation_data_recab$fat_mass ~ external_validation_data_recab$fat_mass_predicted_recab)
+summary(fit)
+
+#slope 95%
+confint(fit, 'external_validation_data_recab$fat_mass_predicted_recab', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+external_validation_data_recab$residuals <- external_validation_data_recab$fat_mass - external_validation_data_recab$fat_mass_predicted_recab
+
+mean_ci(external_validation_data_recab$residuals)
+
+CCC(external_validation_data_recab$fat_mass_predicted_recab, external_validation_data_recab$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data_recab$fat_mass_predicted_recab, external_validation_data_recab$fat_mass)
+
+ggscatter(external_validation_data_recab, x = "fat_mass_predicted_recab", y = "fat_mass", 
+          add = "reg.line",
+          xlab = "Predicted fat mass - reclaibrated (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+
+```{r}
+#residuals
+ggscatter(external_validation_data, x = "age_in_days", y ="residuals", 
+          add = "reg.line", conf.int = TRUE, 
+          xlab = "Age (days)", ylab = "Residuals (kg)")
+
+ggboxplot(external_validation_data, x = "eth", y ="residuals", 
+          xlab = "Ethnicity", ylab = "Residuals (kg)")
+```
+
+```{r}
+###Comparing with Lingwood equation
+external_validation_data$infant_sex <- recode(external_validation_data$baby_gender, "NA=NA; 0=2; 1=1")
+
+external_validation_data$fat_free_mass_lingwood <- 0.507 + (0.646*external_validation_data$inf_weight_kg) - (0.089*external_validation_data$infant_sex) + (0.009*external_validation_data$inf_length_cm)
+
+external_validation_data$fat_mass_lingwood <- external_validation_data$inf_weight_kg - external_validation_data$fat_free_mass_lingwood
+
+fit <- lm(external_validation_data$fat_mass ~ external_validation_data$fat_mass_lingwood)
+summary(fit)
+
+#slope 95%
+confint(fit, 'external_validation_data$fat_mass_lingwood', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$fat_mass_lingwood
+
+mean_ci(external_validation_data$residuals)
+
+CCC(external_validation_data$fat_mass_lingwood, external_validation_data$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data$fat_mass_lingwood, external_validation_data$fat_mass)
+
+ggscatter(external_validation_data, x = "fat_mass_lingwood", y ="fat_mass",
+          add = "reg.line", conf.int = TRUE,
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted fat mass by Lingwood equation (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,6),
+          ylim=c(0,6)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+
+```{r}
+#GEE
+library(geepack)
+
+library(pstools)
+
+wav <- external_validation_data$timepoint
+
+geefit <- geepack::geeglm(fat_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + age_in_days_poly + age_in_days_poly2 + baby_gender,
+                  id = CHLAID, waves = wav, data = external_validation_data, corstr = "ar1")
+
+summary(geefit)
+
+coef=(summary(geefit)$coefficients[,1])
+st_err=(summary(geefit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+coef=geefit$coefficients
+
+overfit_adjustment <- coef*shrink_factor
+
+external_validation_data$gee_fit <- predict(geefit, external_validation_data)
+
+fit <- lm(external_validation_data$fat_mass ~ external_validation_data$gee_fit)
+summary(fit)
+
+#slope 95%
+confint(fit, 'external_validation_data$gee_fit', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95)
+
+external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$gee_fit
+
+mean_ci(external_validation_data$residuals)
+
+CCC(external_validation_data$gee_fit, external_validation_data$fat_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(external_validation_data$gee_fit, external_validation_data$fat_mass)
+
+ggscatter(external_validation_data, x = "gee_fit", y ="fat_mass",
+          add = "loess",
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted fat mass GEE (kg)", ylab = "Observed fat mass (kg)",
+          xlim=c(0,5),
+          ylim=c(0,5)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)
+```
+
+# Lean Mass
+
+Check relationships between variables look OK
+```{r, message=FALSE}
+ggpairs(data=data_model_lean, columns=1:5, title="lean mass relationships")
+```
+
+Fractional polynomial terms stepwise regression for age and length:
+```{r}
+#Backwards stepwise selection with fractional polynomial terms as here: https://cran.r-project.org/web/packages/mfp/vignettes/mfp_vignette.pdf
+#Having fractional polynomials for infant weight lead to overfitting (good graph here but had to recalibrate intercept majorly in external validation)
+modelLean <- mfp(lean_mass ~ fp(inf_weight_kg) + fp(inf_length_cm) + fp(age_in_days) + baby_gender, family = gaussian, data = data_model_lean, select=0.05, verbose=TRUE)
+summary(modelLean)    
+
+#The above model was how we got the original model -- then tested in the sections below (bootstrapping).
+
+coef=(summary(modelLean)$coefficients[,1])
+st_err=(summary(modelLean)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+```
+
+Bootstrapping to adjust for overfitting:
+```{r}
+data_model_lean$inf_weight_poly <- I((data_model_lean$inf_weight_kg/10)^-2)
+data_model_lean$inf_weight_poly2 <- I((data_model_lean$inf_weight_kg/10)^3)
+data_model_lean$inf_length_poly <- 	I((data_model_lean$inf_length_cm/100)^1)
+data_model_lean$age_in_days_poly <- I((data_model_lean$age_in_days/100)^2)
+data_model_lean$age_in_days_poly2 <- I((data_model_lean$age_in_days/100)^3)
+
+###Coefficients with /10 or /100 removed
+# data_model_lean$inf_weight_poly <- I((data_model_lean$inf_weight_kg)^-2)
+# data_model_lean$inf_weight_poly2 <- I((data_model_lean$inf_weight_kg)^3)
+# data_model_lean$inf_length_poly <- 	I((data_model_lean$inf_length_cm)^1)
+# data_model_lean$age_in_days_poly <- I((data_model_lean$age_in_days/100)^2)
+# data_model_lean$age_in_days_poly2 <- I((data_model_lean$age_in_days/100)^3)
+
+set.seed(123)
+mod <- ols(lean_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + age_in_days_poly + age_in_days_poly2 + baby_gender, data = data_model_lean, x=TRUE, y=TRUE)
+v <- validate(mod, B=1000, bw=TRUE, rule="p", sls=.1, type="individual")
+
+confint(mod)
+
+shrink_factor <- v["Slope","index.corrected"]
+shrink_factor
+
+coef=mod$coefficients
+
+overfit_adjustment <- coef*shrink_factor
+
+b <- calibrate(mod, method = "boot", B=1000)
+
+plot(b)
+
+validate(mod, method = "cross",B=5, bw=TRUE, rule="p", sls=.1, type="individual")
+
+library(boot)
+
+foo <- boot(data_model_lean,function(data,indices)
+        summary(lm(lean_mass ~ inf_weight_poly + inf_length_poly + age_in_days_poly + age_in_days_poly2 + baby_gender,data[indices,]))$r.squared,R=1000)
+
+foo$t0
+
+quantile(foo$t,c(0.025,0.975))
+
+###Cook's distance
+cooksd <- cooks.distance(modelLean)
+
+plot(cooksd, pch=".", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+```
+
+Look at model calibration in development dataset (Fig 1)
+```{r}
+data_model_lean$lean_mass_predicted <- predict(mod, data_model_lean)
+
+data_model_lean$residuals <- data_model_lean$lean_mass - data_model_lean$lean_mass_predicted
+
+mean(data_model_lean$lean_mass) - mean(data_model_lean$lean_mass_predicted)
+
+mean(data_model_lean$residuals)
+
+fit <- lm(data_model_lean$lean_mass ~ data_model_lean$lean_mass_predicted)
+summary(fit)
+
+#slope 95%
+confint(fit, 'data_model_lean$lean_mass_predicted', level=0.95)
+
+#Interval 95%
+coef=(summary(fit)$coefficients[,1])
+st_err=(summary(fit)$coefficients[,2])*2
+upper_conf_int = coef + st_err
+lower_conf_int = coef - st_err
+lower_conf_int
+upper_conf_int
+
+psychometric::CI.Rsqlm(fit, level = 0.95) 
+
+data_model_lean$residuals <- data_model_lean$lean_mass - data_model_lean$lean_mass_predicted
+
+mean_ci(data_model_lean$residuals)
+
+CCC(data_model_lean$lean_mass_predicted, data_model_lean$lean_mass, conf.level = 0.95, na.rm = TRUE)
+
+RMSE(data_model_lean$lean_mass_predicted, data_model_lean$lean_mass)
+
+leanplot <- ggscatter(data_model_lean, x = "lean_mass_predicted", y ="lean_mass", 
+          add = "loess", 
+          # cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Predicted lean mass (kg)", ylab = "Observed lean mass (kg)",
+          xlim=c(0,7),
+          ylim=c(0,7)) +
+  scale_x_continuous(expand = c(0, 0), breaks = seq(0,7, by = 1)) +
+  scale_y_continuous(expand = c(0, 0), breaks = seq(0,7, by = 1)) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)  + theme(plot.margin = unit(c(1,1,1,2), "lines"))
+
+###Interaction
+# int <- lm(lean_mass ~ inf_weight_poly + inf_weight_poly2 + inf_length_poly + inf_length_poly2 + age_in_days_poly + age_in_days_poly2 + baby_gender, data = data_model_fat)
+# summary(int)
+# 
+# data_model_fat$lean_mass_predicted_int <- predict(int, data_model_fat)
+# 
+# fit <- lm(data_model_fat$lean_mass ~ data_model_fat$lean_mass_predicted_int)
+# summary(fit)
+# 
+# RMSE(data_model_fat$lean_mass_predicted_int, data_model_fat$lean_mass)
+
+
+fig_1 <- ggpubr::ggarrange(fatplot, leanplot,
+          ncol = 1, nrow = 2,
+          labels = c("A", "B"),
+          font.label = list(size = 20))
+
+ggexport(fig_1,
+         filename = "/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/Plots/Figure_1.pdf",
+         width = 8.5,
+         height = 11,
+         unit = "in",
+         dpi = 300)
+```
+
+
+```{r}
+#manual equation
+#Unadjusted
+data_model_lean$lean_mass_predicted_manual_1 <- 1.171676 - (0.085053*(data_model_lean$inf_weight_kg/10)^-2) + (0.877286*(data_model_lean$inf_weight_kg/10)^3) + (3.272145*(data_model_lean$inf_length_cm/100)^1) + (0.063884*(data_model_lean$age_in_days/100)^2) - (0.006391*(data_model_lean$age_in_days/100)^3) + (0.132196*data_model_lean$baby_gender)
+
+#Adjusted (i.e. removed /100 etc)
+data_model_lean$lean_mass_predicted_manual_2 <- 1.171676 - (8.505346*data_model_lean$inf_weight_kg^-2) + (0.000877286*data_model_lean$inf_weight_kg^3) + (0.03272145*data_model_lean$inf_length_cm) + (0.063884*(data_model_lean$age_in_days/100)^2) - (0.006391*(data_model_lean$age_in_days/100)^3) + (0.132196*data_model_lean$baby_gender)
+
+ggscatter(data_model_lean, x = "lean_mass_predicted", y = "lean_mass_predicted_manual_2",
+          add = "reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Computer equation", ylab = "My equation")
+
+###Test that matches excel calculator
+# test_data <- data_model_lean %>% select(baby_gender, age_in_days, inf_weight_kg, inf_length_cm, lean_mass, lean_mass_predicted, lean_mass_predicted_manual_1, lean_mass_predicted_manual_2)
+# 
+# write.csv(test_data, file = "test_data.csv")
+
+
+```

@@ -1,0 +1,7 @@
+"0",""
+"0","###Test that matches excel calculator"
+"0","# test_data <- data_model_lean %>% select(baby_gender, age_in_days, inf_weight_kg, inf_length_cm, lean_mass, lean_mass_predicted, lean_mass_predicted_manual_1, lean_mass_predicted_manual_2)"
+"0","# "
+"0","# write.csv(test_data, file = ""test_data.csv"")"
+"0",""
+"0",""

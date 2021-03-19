@@ -1,0 +1,4 @@
+"0",""
+"0","external_validation_data$residuals <- external_validation_data$fat_mass - external_validation_data$fat_mass_lingwood"
+"0",""
+"0","mean_ci(external_validation_data$residuals)"

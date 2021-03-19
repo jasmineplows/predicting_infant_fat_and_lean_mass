@@ -1,0 +1,4 @@
+"0",""
+"0","data_model_lean$residuals <- data_model_lean$lean_mass - data_model_lean$lean_mass_predicted"
+"0",""
+"0","mean_ci(data_model_lean$residuals)"

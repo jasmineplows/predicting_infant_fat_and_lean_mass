@@ -1,0 +1,6 @@
+"0","data_model_fat_gee <- dataSet %>%"
+"0","  dplyr::filter(!is.na(inf_weight_kg) & !is.na(inf_length_cm) & !is.na(baby_gender) & !is.na(age_in_days)) %>%"
+"0","  dplyr::select(study_id, timepoint, fat_mass, inf_weight_kg, inf_length_cm, baby_gender, age_in_days)"
+"2","Error in dplyr::filter(., !is.na(inf_weight_kg) & !is.na(inf_length_cm) &  : 
+  object 'dataSet' not found
+"

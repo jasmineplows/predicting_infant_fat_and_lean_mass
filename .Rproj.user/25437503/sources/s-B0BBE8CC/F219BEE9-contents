@@ -1,0 +1,63 @@
+---
+title: "Descriptive Stats"
+author: "Jasmine Plows"
+date: "7/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/Users/JasminePlows/Documents/GitHub/predicting_infant_fat_and_lean_mass/RScripts/01-import.R")
+```
+
+```{r}
+TabledataSet$baby_gender <- as.factor(TabledataSet$baby_gender)
+
+###Get descriptive stats
+getTable1Stats <- function(x, digits = 2, ...){
+  getDescriptionStatsBy(x = x,
+                        by = TabledataSet$Timepoint,
+                        digits = digits,
+                        header_count = '<i>n</i> = %s ',
+                        names_of_missing = NULL,
+                        useNA = "no",
+                        continuous_fn = describeMean,
+                        ...)
+  
+}
+
+t1 <- list()
+t1[["Weight (kg)"]] <-
+  getTable1Stats(TabledataSet$inf_weight_kg)
+
+t1[["Length (cm)"]] <-
+  getTable1Stats(TabledataSet$inf_length_cm)
+
+t1[["Female, <i>n</i> (%)"]] <- 
+  getTable1Stats(TabledataSet$baby_gender)
+
+t1[["Age (days)"]] <- 
+  getTable1Stats(TabledataSet$age_in_days)
+
+t1[["Fat mass (kg)"]] <- 
+  getTable1Stats(TabledataSet$fat_mass)
+
+t1[["Lean mass (kg)"]] <- 
+  getTable1Stats(TabledataSet$lean_mass)
+
+t1[["Free water (kg)"]] <- 
+  getTable1Stats(TabledataSet$free_water)
+
+t1[["Total water (kg)"]] <- 
+  getTable1Stats(TabledataSet$total_water)
+
+# which (is.na(TabledataSet$m_height_cm))
+
+```
+
+```{r, echo=FALSE}
+mergeDesc(t1,
+          htmlTable_args = list(css.rgroup = "",
+                                caption  = "<b>Table 1.</b> Participant characteristics in derivation dataset that had QMR data available at each timepoint. Note that each timepoint represents individuals from earlier timepoints that have reached and completed that timepoint. Data shown are mean (standard deviation)"
+          ))
+```

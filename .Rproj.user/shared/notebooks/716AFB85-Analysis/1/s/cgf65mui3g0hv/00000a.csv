@@ -1,0 +1,4 @@
+"0","#residuals"
+"0","ggscatter(external_validation_data, x = ""age_in_days"", y =""residuals"", "
+"0","          add = ""reg.line"", conf.int = TRUE, "
+"0","          xlab = ""Age (days)"", ylab = ""Residuals (kg)"")"
