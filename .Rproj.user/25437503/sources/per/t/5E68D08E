@@ -1,0 +1,24 @@
+{
+    "id": "5E68D08E",
+    "path": "~/Documents/GitHub/predicting_infant_fat_and_lean_mass/Shiny/app.R",
+    "project_path": "Shiny/app.R",
+    "type": "r_source",
+    "hash": "2465873378",
+    "contents": "",
+    "dirty": false,
+    "created": 1616178730384.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "cursorPosition": "124,74",
+        "scrollLine": "115"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1616180722,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1616180722159,
+    "read_only": false,
+    "read_only_alternatives": []
+}

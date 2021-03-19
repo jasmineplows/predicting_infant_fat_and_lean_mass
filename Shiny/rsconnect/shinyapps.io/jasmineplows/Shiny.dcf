@@ -1,0 +1,12 @@
+name: Shiny
+title: Shiny
+username:
+account: jasmineplows
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3822434
+bundleId: 4369868
+url: https://jasmineplows.shinyapps.io/Shiny/
+when: 1616181061.19244
+asMultiple: FALSE
+asStatic: FALSE
